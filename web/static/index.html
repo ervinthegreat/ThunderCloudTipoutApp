@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ThunderCloud">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<title>ThunderCloud Tips</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #000; color: #fff;
+    overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #screen {
+    position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    touch-action: none;
+  }
+  #stats, #loading, #error {
+    position: fixed; left: 0; top: 0;
+    padding: calc(env(safe-area-inset-top) + 6px) 10px 6px calc(env(safe-area-inset-left) + 10px);
+    font: 12px/1.3 Menlo, Consolas, monospace;
+    pointer-events: none;
+  }
+  #stats { color: #7fff7f; text-shadow: 0 0 4px #000; }
+  #loading { width: 100%; top: 45%; text-align: center; font-size: 16px; }
+  #error { display: none; right: 0; background: #800; white-space: pre-wrap; pointer-events: auto; }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<div id="stats"></div>
+<div id="loading">loading...</div>
+<div id="error"></div>
+<script>
+  function showError(msg) {
+    var el = document.getElementById("error");
+    el.style.display = "block";
+    el.textContent += msg + "\n";
+  }
+  window.addEventListener("error", function (e) { showError(e.message + " @ " + e.filename + ":" + e.lineno); });
+  window.addEventListener("unhandledrejection", function (e) { showError("promise: " + e.reason); });
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+</script>
+<script src="classes.js"></script>
+<script>
+  try { main([]); } catch (e) { showError("main: " + e); }
+</script>
+</body>
+</html>
