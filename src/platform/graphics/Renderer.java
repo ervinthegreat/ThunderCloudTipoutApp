@@ -9,6 +9,7 @@ import math.Vec3;
 import platform.display.DisplayManager;
 
 public class Renderer {
+	public static final float FOV_Y_DEGREES = 70f;
 	private Rasterizer rasterizer;
 	private Camera mainCamera;
 	private TextureManager textureManager;
@@ -24,7 +25,7 @@ public class Renderer {
 	public Renderer() {
 		rasterizer = new Rasterizer(DisplayManager.getFramebuffer());	
 		Maths.viewMatrix(viewMatrix, new Vec3(0,0,0), 0f, 0f, 0f);
-		Maths.perspective(projectionMatrix, 70f, 0.1f, 100f);
+		Maths.perspective(projectionMatrix, FOV_Y_DEGREES, 0.1f, 100f);
 	}
 	public void setMainCamera(Camera camera) 	{this.mainCamera = camera;}
 	public void setClearColor(int color) 		{clearColor = color;}	

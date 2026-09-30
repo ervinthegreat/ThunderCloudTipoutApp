@@ -21,8 +21,16 @@ public class Engine {
 	private static final float SCENE_DEPTH = -4.0f;
 	private static final float BOLT_SIZE = 2.0f;
 	private static final float GEM_SIZE = 0.6f;
-	/** Gem centers, one per corner around the bolt, in GEM_MODELS order. */
-	private static final float[][] GEM_OFFSETS = {{-0.85f, 1.5f}, {0.85f, 1.5f}, {-0.85f, -1.5f}, {0.85f, -1.5f}};
+	/**
+	 * Gem centers in GEM_MODELS order, as fractions of the visible screen at SCENE_DEPTH:
+	 * x -1 = left edge, 1 = right edge; y -1 = bottom, 1 = top. Keeps the layout on any aspect ratio.
+	 */
+	private static final float[][] GEM_LAYOUT = {
+			{-0.40f, 0.54f},	// amethyst
+			{ 0.30f, 0.47f},	// diamond
+			{-0.32f, -0.54f},	// sapphire
+			{ 0.70f, -0.45f},	// topaz
+	};
 
 	private static final float SPIN_DEGREES_PER_TICK = 0.5f;
 	private static final float TUMBLE_DEGREES_PER_TICK = SPIN_DEGREES_PER_TICK * 0.5f;
@@ -49,9 +57,11 @@ public class Engine {
 		renderer.setClearColor(Utilities.floatToInt(0, 0, 0));
 
 		bolt = createModel(BOLT_MODEL, BOLT_COLOR, BOLT_SIZE, new Vec3(0, 0, SCENE_DEPTH));
+		float halfHeight = (float) Math.tan(Math.toRadians(Renderer.FOV_Y_DEGREES) * 0.5) * -SCENE_DEPTH;
+		float halfWidth = halfHeight * DisplayManager.getWidth() / DisplayManager.getHeight();
 		gems = new Entity[GEM_MODELS.length];
 		for (int i = 0; i < GEM_MODELS.length; i++) {
-			Vec3 pos = new Vec3(GEM_OFFSETS[i][0], GEM_OFFSETS[i][1], SCENE_DEPTH);
+			Vec3 pos = new Vec3(GEM_LAYOUT[i][0] * halfWidth, GEM_LAYOUT[i][1] * halfHeight, SCENE_DEPTH);
 			gems[i] = createModel(GEM_MODELS[i], GEM_COLORS[i], GEM_SIZE, pos);
 		}
 	}
