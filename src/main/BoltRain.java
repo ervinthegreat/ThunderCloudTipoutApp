@@ -7,18 +7,18 @@ import math.Vec3;
 import platform.graphics.Renderer;
 
 /**
- * A fixed pool of gem entities that fall through the view. Gems that leave the bottom of the
+ * A fixed pool of bolt entities that fall through the view. Bolts that leave the bottom of the
  * screen are recycled to the top with a new random shape, color, column, depth, speed, size and spin.
  */
-public class GemRain {
+public class BoltRain {
 
-	private static final int POOL_SIZE = 10;
+	private static final int POOL_SIZE = 20;
 	private static final float NEAR_DEPTH = -3.0f;
 	private static final float FAR_DEPTH = -10.0f;
 	private static final float MIN_SIZE = 0.4f, MAX_SIZE = 0.7f;
 	private static final float MIN_FALL_PER_SECOND = 1.0f, MAX_FALL_PER_SECOND = 2.5f;
 	private static final float MIN_SPIN_DEGREES_PER_SECOND = 25f, MAX_SPIN_DEGREES_PER_SECOND = 95f;
-	/** Extra distance beyond the screen edge so gems enter and leave fully out of view. */
+	/** Extra distance beyond the screen edge so bolts enter and leave fully out of view. */
 	private static final float EDGE_MARGIN = 0.6f;
 
 	/** A loaded mesh shared by many entities, with its unscaled largest dimension. */
@@ -42,7 +42,7 @@ public class GemRain {
 	private final float aspect;
 	private final Random random = new Random();
 
-	public GemRain(Model[] shapes, int[] colorTextures, float aspect) {
+	public BoltRain(Model[] shapes, int[] colorTextures, float aspect) {
 		this.shapes = shapes;
 		this.colorTextures = colorTextures;
 		this.aspect = aspect;

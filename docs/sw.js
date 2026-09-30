@@ -1,16 +1,12 @@
 // Cache-first service worker so the app keeps working offline after the first visit.
-// 20260929203533 is replaced by build-web.ps1 on every build, which makes phones pick up new versions.
-const CACHE = "thundercloud-20260929203533";
+// 20260929204031 is replaced by build-web.ps1 on every build, which makes phones pick up new versions.
+const CACHE = "thundercloud-20260929204031";
 const ASSETS = [
   "./",
   "index.html",
   "classes.js",
   "manifest.webmanifest",
-  "res/thunder.obj",
-  "res/gems/amethyst.obj",
-  "res/gems/diamond.obj",
-  "res/gems/sapphire.obj",
-  "res/gems/topaz.obj"
+  "res/thunder.obj"
 ];
 
 self.addEventListener("install", (event) => {

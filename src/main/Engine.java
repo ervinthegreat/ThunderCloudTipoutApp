@@ -1,8 +1,5 @@
 package main;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import entities.Camera;
 import entities.Entity;
 import entities.Light;
@@ -17,20 +14,18 @@ import platform.graphics.objects.Mesh;
 public class Engine {
 
 	public static final String BOLT_MODEL = "thunder";
-	public static final String[] GEM_MODELS = {"gems/amethyst", "gems/diamond", "gems/sapphire", "gems/topaz"};
 	private static final int BOLT_COLOR = 0xFFFFD21F;
-	private static final int[] GEM_COLORS = {
-			0xFFFF2A2A,	// red
-			0xFFFF8A1A,	// orange
-			0xFFFFE14D,	// gold
-			0xFF8CFF3A,	// lime
-			0xFF1AE87A,	// emerald
-			0xFF2AE8FF,	// cyan
-			0xFF3A6BFF,	// blue
-			0xFF9B5DE5,	// purple
-			0xFFFF3AD8,	// magenta
-			0xFFFF5C8A,	// pink
-			0xFFF2FBFF,	// white
+	private static final int[] RAIN_COLORS = {
+			0xFFFFE85C,	// lemon
+			0xFFFFD21F,	// bolt yellow
+			0xFFFFB31A,	// amber
+			0xFFFF8C00,	// hot orange
+			0xFFFFF6C2,	// pale flash
+			0xFFF2FBFF,	// white hot
+			0xFF9FE8FF,	// ice blue
+			0xFF2AE8FF,	// electric cyan
+			0xFF6F8BFF,	// storm blue
+			0xFFB48CFF,	// violet
 	};
 
 	private static final float BOLT_DEPTH = -4.0f;
@@ -41,7 +36,7 @@ public class Engine {
 	private static Renderer renderer;
 	private static TextureManager textureManager;
 	private static Entity bolt;
-	private static GemRain gemRain;
+	private static BoltRain boltRain;
 	private static Camera camera;
 	private static Light light;
 
@@ -59,7 +54,7 @@ public class Engine {
 		renderer.setMainCamera(camera);
 		renderer.setClearColor(Utilities.floatToInt(0, 0, 0));
 
-		GemRain.Model boltModel = loadModel(BOLT_MODEL);
+		BoltRain.Model boltModel = loadModel(BOLT_MODEL);
 		if (boltModel != null) {
 			bolt = new Entity(boltModel.vaoId, new Vec3(0, 0, BOLT_DEPTH), 0, 0, 0);
 			bolt.setScale(boltModel.extent > 0 ? BOLT_SIZE / boltModel.extent : 1f);
@@ -67,25 +62,20 @@ public class Engine {
 			bolt.setLit(true);
 		}
 
-		List<GemRain.Model> gemShapes = new ArrayList<>();
-		for (String name : GEM_MODELS) {
-			GemRain.Model shape = loadModel(name);
-			if (shape != null) gemShapes.add(shape);
-		}
-		int[] gemColors = new int[GEM_COLORS.length];
-		for (int i = 0; i < GEM_COLORS.length; i++) gemColors[i] = solidColor(GEM_COLORS[i]);
-		if (!gemShapes.isEmpty()) {
+		int[] rainColors = new int[RAIN_COLORS.length];
+		for (int i = 0; i < RAIN_COLORS.length; i++) rainColors[i] = solidColor(RAIN_COLORS[i]);
+		if (boltModel != null) {
 			float aspect = (float) DisplayManager.getWidth() / DisplayManager.getHeight();
-			gemRain = new GemRain(gemShapes.toArray(new GemRain.Model[0]), gemColors, aspect);
+			boltRain = new BoltRain(new BoltRain.Model[] {boltModel}, rainColors, aspect);
 		}
 	}
 
 	/** Loads res/<name>.obj once and centers it. Null if missing. */
-	private static GemRain.Model loadModel(String name) {
+	private static BoltRain.Model loadModel(String name) {
 		Mesh mesh = OBJLoader.loadObjModel(name);
 		if (mesh == null) return null;
 		float extent = centerMesh(mesh);
-		return new GemRain.Model(Rasterizer.createVAO(mesh), extent);
+		return new BoltRain.Model(Rasterizer.createVAO(mesh), extent);
 	}
 
 	/** One-pixel texture, so an entity renders as a single solid color. */
@@ -116,14 +106,14 @@ public class Engine {
 				(bolt.getPitch() + TUMBLE_DEGREES_PER_SECOND * TICK_SECONDS) % 360f,
 				(bolt.getYaw() + SPIN_DEGREES_PER_SECOND * TICK_SECONDS) % 360f,
 				0);
-		if (gemRain != null) gemRain.update(TICK_SECONDS);
+		if (boltRain != null) boltRain.update(TICK_SECONDS);
 	}
 
 	public static void render() {
 		DisplayManager.startFrame();
 		renderer.prepare();
 		if (bolt != null) renderer.render(bolt);
-		if (gemRain != null) gemRain.render(renderer);
+		if (boltRain != null) boltRain.render(renderer);
 		DisplayManager.endFrame();
 	}
 }

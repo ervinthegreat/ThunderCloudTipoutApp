@@ -6,11 +6,7 @@ const ASSETS = [
   "index.html",
   "classes.js",
   "manifest.webmanifest",
-  "res/thunder.obj",
-  "res/gems/amethyst.obj",
-  "res/gems/diamond.obj",
-  "res/gems/sapphire.obj",
-  "res/gems/topaz.obj"
+  "res/thunder.obj"
 ];
 
 self.addEventListener("install", (event) => {

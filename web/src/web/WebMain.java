@@ -26,10 +26,7 @@ public class WebMain {
 	private static double renderMsTotal;
 
 	private static String[] modelPaths() {
-		String[] paths = new String[1 + Engine.GEM_MODELS.length];
-		paths[0] = "res/" + Engine.BOLT_MODEL + ".obj";
-		for (int i = 0; i < Engine.GEM_MODELS.length; i++) paths[i + 1] = "res/" + Engine.GEM_MODELS[i] + ".obj";
-		return paths;
+		return new String[] {"res/" + Engine.BOLT_MODEL + ".obj"};
 	}
 
 	public static void main(String[] args) {
