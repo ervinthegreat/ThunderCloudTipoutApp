@@ -6,7 +6,7 @@ public class Entity {
 	
 	private int 	vaoId;
 	private Vec3 	position = new Vec3(0,0,0);
-	private int 	textureId = 0;
+	private int 	color = 0xFFFFFFFF;
 	private boolean lit = true;
 
 	private float 	roty,rotx,rotz;
@@ -24,10 +24,10 @@ public class Entity {
 	public void setVaoId(int vaoId) {this.vaoId = vaoId;}
 	public void setRotation(float x, float y, float z) {this.rotx =x; this.roty = y; this.rotz = z;}
 	public void setScale(float scale) {this.scale = scale;}
-	public void setTextureId(int textureId) {this.textureId = textureId;}
+	public void setColor(int argb) {this.color = argb;}
 	public void setLit(boolean lit) {this.lit = lit;}
 	public int getVaoId() {return vaoId;}
-	public int getTextureId() {return textureId;}
+	public int getColor() {return color;}
 	public boolean isLit() {return lit;}
 	public Vec3 getPosition() {return this.position;}
 	public float getPitch() {return this.rotx;}

@@ -66,6 +66,14 @@ public class TipApp implements UiLayer {
 	private final List<TextField> visibleFields = new ArrayList<>();
 	private final List<Button> buttons = new ArrayList<>();
 
+	/** Set by taps and Return; typing and focus changes are caught by comparing against the last paint. */
+	private boolean dirty = true;
+	private final List<String> paintedTexts = new ArrayList<>();
+	private final List<Boolean> paintedFocus = new ArrayList<>();
+	private long paintedCaretPhase;
+	private int paintedPulse;
+	private static final int PULSE_STEPS = 10;
+
 	private static final class Button {
 		final float x, y, w, h;
 		final Runnable action;
@@ -81,16 +89,23 @@ public class TipApp implements UiLayer {
 		this.clock = clock;
 		chain(cash, credit);
 		chain(credit, uber);
-		uber.onEnter = this::reportNext;
+		onEnter(uber, this::reportNext);
 		chain(prevCash, prevCredit);
 		chain(prevCredit, prevUber);
 		chain(prevUber, prevTotal);
-		prevTotal.onEnter = this::calculate;
+		onEnter(prevTotal, this::calculate);
 		reset();
 	}
 
 	private void chain(TextField from, TextField to) {
-		from.onEnter = () -> input.focus(to);
+		onEnter(from, () -> input.focus(to));
+	}
+
+	private void onEnter(TextField f, Runnable action) {
+		f.onEnter = () -> {
+			action.run();
+			dirty = true;
+		};
 	}
 
 	private void reset() {
@@ -128,7 +143,7 @@ public class TipApp implements UiLayer {
 
 	private TextField addNameRow() {
 		TextField f = new TextField(TextField.Kind.NAME);
-		f.onEnter = () -> nameEnter(f);
+		onEnter(f, () -> nameEnter(f));
 		names.add(f);
 		return f;
 	}
@@ -229,6 +244,7 @@ public class TipApp implements UiLayer {
 
 	@Override
 	public void tap(float x, float y) {
+		dirty = true;
 		if (!awake) {
 			awake = true;
 			return;
@@ -254,30 +270,58 @@ public class TipApp implements UiLayer {
 	// ---------------------------------------------------------------- painting
 
 	@Override
+	public boolean needsRepaint() {
+		if (dirty) return true;
+		if (!awake) return pulseStep() != paintedPulse;
+		boolean anyFocused = false;
+		for (int i = 0; i < visibleFields.size(); i++) {
+			TextField f = visibleFields.get(i);
+			if (f.focused != paintedFocus.get(i) || !f.text.equals(paintedTexts.get(i))) return true;
+			anyFocused |= f.focused;
+		}
+		return anyFocused && caretPhase() != paintedCaretPhase;
+	}
+
+	private static long caretPhase() {return (System.currentTimeMillis() / 500) % 2;}
+
+	/** The pulse brightness in PULSE_STEPS levels, so it repaints a few times a second rather than every frame. */
+	private static int pulseStep() {
+		double pulse = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 600.0);
+		return (int) Math.round(pulse * PULSE_STEPS);
+	}
+
+	@Override
 	public void paint(UiCanvas c, float width, float height) {
 		visibleFields.clear();
 		buttons.clear();
+		paintedCaretPhase = caretPhase();
+		paintedPulse = pulseStep();
 		if (!awake) {
 			paintTapToStart(c, width, height);
-			input.sync(visibleFields);
-			return;
+		} else {
+			c.fillRect(0, 0, width, height, DIM);
+			float x = MARGIN, w = width - 2 * MARGIN;
+			switch (step) {
+				case NAMES: paintNames(c, x, w, height); break;
+				case FIRST_OR_LATER: paintFirstOrLater(c, x, w); break;
+				case REPORT: paintReport(c, x, w); break;
+				case PREVIOUS: paintPrevious(c, x, w); break;
+				case RESULT: paintResult(c, x, w); break;
+			}
+			if (hasAnythingToErase()) paintStartOver(c, x, w, height);
 		}
-		c.fillRect(0, 0, width, height, DIM);
-		float x = MARGIN, w = width - 2 * MARGIN;
-		switch (step) {
-			case NAMES: paintNames(c, x, w, height); break;
-			case FIRST_OR_LATER: paintFirstOrLater(c, x, w); break;
-			case REPORT: paintReport(c, x, w); break;
-			case PREVIOUS: paintPrevious(c, x, w); break;
-			case RESULT: paintResult(c, x, w); break;
-		}
-		if (hasAnythingToErase()) paintStartOver(c, x, w, height);
 		input.sync(visibleFields);
+		paintedTexts.clear();
+		paintedFocus.clear();
+		for (TextField f : visibleFields) {
+			paintedTexts.add(f.text);
+			paintedFocus.add(f.focused);
+		}
+		dirty = false;
 	}
 
 	private void paintTapToStart(UiCanvas c, float width, float height) {
-		double pulse = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 600.0);
-		int alpha = (int) (90 + 120 * pulse);
+		int alpha = 90 + 120 * paintedPulse / PULSE_STEPS;
 		c.drawText("Tap to start", width * 0.5f, height - 80, 18, true, (alpha << 24) | 0xFFFFFF,
 				UiCanvas.ALIGN_CENTER);
 	}
@@ -473,7 +517,7 @@ public class TipApp implements UiLayer {
 		} else {
 			c.drawText(f.text, textX, baseline, size, false, TEXT, UiCanvas.ALIGN_LEFT);
 		}
-		if (f.focused && (System.currentTimeMillis() / 500) % 2 == 0) {
+		if (f.focused && paintedCaretPhase == 0) {
 			float caretX = textX + c.measureText(f.text, size, false) + 1;
 			float inset = h * 0.25f;
 			c.fillRect(caretX, y + inset, 2, h - 2 * inset, ACCENT);

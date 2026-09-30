@@ -1,5 +1,6 @@
 package platform.desktop;
 
+import java.awt.AlphaComposite;
 import java.awt.Canvas;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -25,6 +26,8 @@ public class Screen extends Canvas implements Display {
 	private final int uiWidth, uiHeight;
 	private final float zoom;
 	private final Graphics2DCanvas uiCanvas = new Graphics2DCanvas();
+	/** The UI as last painted, drawn over every frame and repainted only when the UI changes. */
+	private BufferedImage uiImage;
 
 	public Screen(int uiWidth, int uiHeight, float zoom, FrameBuffer fb) {
 		this.image = wrap(fb);
@@ -37,9 +40,9 @@ public class Screen extends Canvas implements Display {
 
 	public float getZoom() {return zoom;}
 
-	/** BufferedImage that shares the framebuffer's pixel array, so no per-frame copy is needed. */
+	/** BufferedImage that shares the framebuffer's 0xAABBGGRR pixel array, so no per-frame copy is needed. */
 	private static BufferedImage wrap(FrameBuffer fb) {
-		DirectColorModel cm = new DirectColorModel(32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+		DirectColorModel cm = new DirectColorModel(32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000);
 		DataBufferInt buffer = new DataBufferInt(fb.pixels, fb.pixels.length);
 		WritableRaster raster = Raster.createPackedRaster(buffer, fb.width, fb.height, fb.width,
 				cm.getMasks(), null);
@@ -58,13 +61,28 @@ public class Screen extends Canvas implements Display {
 			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 			g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
 			if (ui != null) {
-				g.scale(zoom, zoom);
-				uiCanvas.begin(g);
-				ui.paint(uiCanvas, uiWidth, uiHeight);
+				boolean resized = uiImage == null || uiImage.getWidth() != getWidth() || uiImage.getHeight() != getHeight();
+				if (resized || ui.needsRepaint()) repaintUi(ui, resized);
+				g.drawImage(uiImage, 0, 0, null);
 			}
 		} finally {
 			g.dispose();
 		}
 		bs.show();
+	}
+
+	private void repaintUi(UiLayer ui, boolean resized) {
+		if (resized) uiImage = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB_PRE);
+		Graphics2D ug = uiImage.createGraphics();
+		try {
+			ug.setComposite(AlphaComposite.Clear);
+			ug.fillRect(0, 0, uiImage.getWidth(), uiImage.getHeight());
+			ug.setComposite(AlphaComposite.SrcOver);
+			ug.scale(zoom, zoom);
+			uiCanvas.begin(ug);
+			ui.paint(uiCanvas, uiWidth, uiHeight);
+		} finally {
+			ug.dispose();
+		}
 	}
 }

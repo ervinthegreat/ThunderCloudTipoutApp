@@ -1,7 +1,5 @@
 package math;
 
-import platform.display.DisplayManager;
-
 public class Maths {
 
 	public static final float DEG_TO_RAD = (float) (Math.PI / 180.0);
@@ -19,50 +17,12 @@ public class Maths {
 		}
 	}
 	// Reused scratch matrices to avoid per-frame allocations (single-threaded usage).
-	private static final Mat4 VIEW_RX = new Mat4();
-	private static final Mat4 VIEW_RY = new Mat4();
-	private static final Mat4 VIEW_RZ = new Mat4();
-	private static final Mat4 VIEW_T = new Mat4();
-	private static final Mat4 VIEW_R = new Mat4();
 	private static final Mat4 TRANS_S = new Mat4();
 	private static final Mat4 TRANS_RX = new Mat4();
 	private static final Mat4 TRANS_RY = new Mat4();
 	private static final Mat4 TRANS_RZ = new Mat4();
 	private static final Mat4 TRANS_T = new Mat4();
 	private static final Mat4 TRANS_R = new Mat4();
-
-	/** FOV in degrees (e.g. 70). Aspect from DisplayManager.getWidth()/getHeight(). */
-	public static void perspective(Mat4 out, float fovYDegrees, float near, float far) {
-		float aspect = (float) DisplayManager.getWidth() / DisplayManager.getHeight();
-		float sy = 1f / (float) Math.tan((fovYDegrees * DEG_TO_RAD) * 0.5f);
-		float sx = sy / aspect;
-		float nf = 1f / (near - far);
-		float[] m = out.m;
-		out.identity();
-		m[0] = sx;
-		m[5] = sy;
-		m[10] = (far + near) * nf;
-		m[11] = -1f;
-		m[14] = 2f * far * near * nf;
-		m[15] = 0f;
-	}
-
-	public static void viewMatrix(Mat4 out, Vec3 position, float pitchDeg, float yawDeg, float rollDeg) {
-		float pitchRad = pitchDeg * DEG_TO_RAD;
-		float yawRad = yawDeg * DEG_TO_RAD;
-		float rollRad = rollDeg * DEG_TO_RAD;
-		VIEW_RX.setRotationX(pitchRad);
-		VIEW_RY.setRotationY(yawRad);
-		VIEW_RZ.setRotationZ(rollRad);
-		VIEW_T.setTranslation(-position.x, -position.y, -position.z);
-		// view = Rx * Ry * Rz * T(-pos) (matches OpenGL-style snippet)
-		VIEW_R.set(VIEW_RX);
-		out.multiply(VIEW_R, VIEW_RY);       // out = Rx * Ry
-		VIEW_R.set(out);
-		out.multiply(VIEW_R, VIEW_RZ);       // out = Rx * Ry * Rz
-		VIEW_R.set(out);
-		out.multiply(VIEW_R, VIEW_T);        // out = Rx * Ry * Rz * T
-	}
 
 	/** Mesh transform: translate * roll(Z) * yaw(Y) * pitch(X) * scale. Angles in degrees; scale is uniform. */
 	public static void transform(Mat4 out, Vec3 position, float pitchDeg, float yawDeg, float rollDeg, float scale) {

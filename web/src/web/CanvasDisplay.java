@@ -46,20 +46,19 @@ public class CanvasDisplay implements Display {
 
 	@Override
 	public void present(FrameBuffer fb, UiLayer ui) {
-		int[] src = fb.pixels;
-		Int32Array dst = out;
-		for (int i = 0, n = src.length; i < n; i++) {
-			dst.set(i, WebColor.argbToAbgr(src[i]));
-		}
+		out.set(fb.pixels);
 		ctx.putImageData(imageData, 0, 0);
 
 		double dpr = Window.current().getDevicePixelRatio();
 		int w = (int) Math.round(cssWidth * dpr);
 		int h = (int) Math.round(cssHeight * dpr);
-		if (uiCanvas.getWidth() != w || uiCanvas.getHeight() != h) {
+		boolean resized = uiCanvas.getWidth() != w || uiCanvas.getHeight() != h;
+		if (resized) {
 			uiCanvas.setWidth(w);
 			uiCanvas.setHeight(h);
 		}
+		// The UI canvas keeps its last drawing until it is resized or the UI changes.
+		if (!resized && (ui == null || !ui.needsRepaint())) return;
 		uiCtx.setTransform(1, 0, 0, 1, 0, 0);
 		uiCtx.clearRect(0, 0, w, h);
 		if (ui == null) return;

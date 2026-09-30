@@ -33,7 +33,7 @@ public class BoltRain {
 	}
 
 	private final Model[] shapes;
-	private final int[] colorTextures;
+	private final int[] colors;
 	private final Entity[] drops = new Entity[POOL_SIZE];
 	private final float[] fallSpeed = new float[POOL_SIZE];
 	private final float[] spinPitch = new float[POOL_SIZE];
@@ -42,9 +42,9 @@ public class BoltRain {
 	private final float aspect;
 	private final Random random = new Random();
 
-	public BoltRain(Model[] shapes, int[] colorTextures, float aspect) {
+	public BoltRain(Model[] shapes, int[] colors, float aspect) {
 		this.shapes = shapes;
-		this.colorTextures = colorTextures;
+		this.colors = colors;
 		this.aspect = aspect;
 		this.tanHalfFov = (float) Math.tan(Math.toRadians(Renderer.FOV_Y_DEGREES) * 0.5);
 		for (int i = 0; i < POOL_SIZE; i++) {
@@ -65,7 +65,7 @@ public class BoltRain {
 		Model shape = shapes[random.nextInt(shapes.length)];
 		Entity e = drops[i];
 		e.setVaoId(shape.vaoId);
-		e.setTextureId(colorTextures[random.nextInt(colorTextures.length)]);
+		e.setColor(colors[random.nextInt(colors.length)]);
 		e.setLit(true);
 		e.setScale(shape.extent > 0 ? range(MIN_SIZE, MAX_SIZE) / shape.extent : 1f);
 		e.setRotation(range(0, 360), range(0, 360), 0);
