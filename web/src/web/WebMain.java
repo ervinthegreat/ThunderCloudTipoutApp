@@ -1,5 +1,6 @@
 package web;
 
+import org.teavm.jso.JSBody;
 import org.teavm.jso.browser.Window;
 import org.teavm.jso.dom.html.HTMLCanvasElement;
 import org.teavm.jso.dom.html.HTMLDocument;
@@ -19,6 +20,9 @@ public class WebMain {
 	private static final double TICK_MS = Engine.TICK_SECONDS * 1000.0;
 
 	private static HTMLElement stats;
+	/** Minimum time between renders; updates still run every tick so motion speed is unchanged. */
+	private static double renderIntervalMs;
+	private static double renderAccumulator;
 	private static double lastTime = -1;
 	private static double accumulator;
 	private static double statsTime;
@@ -39,20 +43,30 @@ public class WebMain {
 		Window window = Window.current();
 		HTMLDocument doc = HTMLDocument.current();
 
+		String search = window.getLocation().getSearch();
+		if (search == null) search = "";
+		boolean kiosk = search.contains("kiosk");
+
 		int width = window.getInnerWidth();
 		int height = window.getInnerHeight();
-		DisplayManager.createDisplay(width, height, readScale(window));
+		DisplayManager.createDisplay(width, height, readParam(search, "scale", DEFAULT_SCALE, 1, 16));
 		FrameBuffer fb = DisplayManager.getFramebuffer();
 		HTMLCanvasElement canvas = (HTMLCanvasElement) doc.getElementById("screen");
 		HTMLCanvasElement uiCanvas = (HTMLCanvasElement) doc.getElementById("ui");
 		DisplayManager.setDisplay(new CanvasDisplay(canvas, uiCanvas, fb, width, height));
 
-		TipApp app = new TipApp(new WebTextInput(doc.getElementById("fields")), new WebClock());
-		DisplayManager.setUiLayer(app);
-		WebInput.install(uiCanvas, app);
+		int fps = readParam(search, "fps", Engine.FRAMES_PER_SECOND, 1, Engine.FRAMES_PER_SECOND);
+		renderIntervalMs = fps >= Engine.FRAMES_PER_SECOND ? 0 : 1000.0 / fps;
 
-		String search = window.getLocation().getSearch();
-		if (search != null && search.contains("stats")) {
+		if (kiosk) {
+			keepScreenAwake();
+		} else {
+			TipApp app = new TipApp(new WebTextInput(doc.getElementById("fields")), new WebClock());
+			DisplayManager.setUiLayer(app);
+			WebInput.install(uiCanvas, app);
+		}
+
+		if (search.contains("stats")) {
 			stats = doc.getElementById("stats");
 			stats.getStyle().setProperty("display", "block");
 		}
@@ -63,26 +77,37 @@ public class WebMain {
 		Window.requestAnimationFrame(WebMain::frame);
 	}
 
-	/** Framebuffer downscale factor; override with ?scale=N in the URL. */
-	private static int readScale(Window window) {
-		String search = window.getLocation().getSearch();
-		int at = search != null ? search.indexOf("scale=") : -1;
-		if (at < 0) return DEFAULT_SCALE;
-		int end = at + 6;
+	/** Integer URL option such as ?scale=4 or ?fps=12, clamped to [min, max]. */
+	private static int readParam(String search, String name, int fallback, int min, int max) {
+		int at = search.indexOf(name + "=");
+		if (at < 0) return fallback;
+		int begin = at + name.length() + 1;
+		int end = begin;
 		while (end < search.length() && Character.isDigit(search.charAt(end))) end++;
 		try {
-			return Math.max(1, Math.min(16, Integer.parseInt(search.substring(at + 6, end))));
+			return Math.max(min, Math.min(max, Integer.parseInt(search.substring(begin, end))));
 		} catch (NumberFormatException e) {
-			return DEFAULT_SCALE;
+			return fallback;
 		}
 	}
+
+	/** Screen Wake Lock, re-requested whenever the page becomes visible again (the browser drops it when hidden). */
+	@JSBody(script = "if (!('wakeLock' in navigator)) return;"
+			+ "var request = function () { navigator.wakeLock.request('screen').catch(function () {}); };"
+			+ "request();"
+			+ "document.addEventListener('visibilitychange', function () {"
+			+ "  if (document.visibilityState === 'visible') request();"
+			+ "});")
+	private static native void keepScreenAwake();
 
 	private static void frame(double now) {
 		if (lastTime < 0) {
 			lastTime = now;
 			statsTime = now;
 		}
-		accumulator += Math.min(now - lastTime, 250);
+		double elapsed = Math.min(now - lastTime, 250);
+		accumulator += elapsed;
+		renderAccumulator += elapsed;
 		lastTime = now;
 
 		boolean ticked = false;
@@ -91,7 +116,8 @@ public class WebMain {
 			accumulator -= TICK_MS;
 			ticked = true;
 		}
-		if (ticked) {
+		if (ticked && renderAccumulator >= renderIntervalMs) {
+			renderAccumulator = Math.min(renderAccumulator - renderIntervalMs, renderIntervalMs);
 			double t0 = System.nanoTime();
 			Engine.render();
 			renderMsTotal += (System.nanoTime() - t0) / 1_000_000.0;
