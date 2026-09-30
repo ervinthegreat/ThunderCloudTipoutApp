@@ -142,10 +142,33 @@ public class OBJLoader {
 		outIndices.clear();
 
 		if (textureArray == null) textureArray = new float[(verticesArray.length / 3) * 2];
-		if (normalsArray == null) normalsArray = new float[(verticesArray.length / 3) * 3];
+		if (normalsArray == null) normalsArray = computeNormals(verticesArray, indicesArray);
 
 
 		return new Mesh(verticesArray, textureArray,indicesArray, normalsArray);
+	}
+
+	/** Smooth vertex normals: sum of area-weighted face normals at each vertex, normalized. */
+	private static float[] computeNormals(float[] positions, int[] indices) {
+		float[] normals = new float[positions.length];
+		for (int i = 0; i + 2 < indices.length; i += 3) {
+			int a = indices[i] * 3, b = indices[i + 1] * 3, c = indices[i + 2] * 3;
+			float e1x = positions[b] - positions[a], e1y = positions[b + 1] - positions[a + 1], e1z = positions[b + 2] - positions[a + 2];
+			float e2x = positions[c] - positions[a], e2y = positions[c + 1] - positions[a + 1], e2z = positions[c + 2] - positions[a + 2];
+			float nx = e1y * e2z - e1z * e2y;
+			float ny = e1z * e2x - e1x * e2z;
+			float nz = e1x * e2y - e1y * e2x;
+			for (int v : new int[] {a, b, c}) {
+				normals[v] += nx; normals[v + 1] += ny; normals[v + 2] += nz;
+			}
+		}
+		for (int i = 0; i < normals.length; i += 3) {
+			float len = (float) Math.sqrt(normals[i] * normals[i] + normals[i + 1] * normals[i + 1] + normals[i + 2] * normals[i + 2]);
+			if (len > 1e-12f) {
+				normals[i] /= len; normals[i + 1] /= len; normals[i + 2] /= len;
+			}
+		}
+		return normals;
 	}
 
 	private static int parseIndex(String[] comps, int compIndex, int size) {

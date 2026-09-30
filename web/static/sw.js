@@ -6,7 +6,7 @@ const ASSETS = [
   "index.html",
   "classes.js",
   "manifest.webmanifest",
-  "res/marble.png"
+  "res/thunder.obj"
 ];
 
 self.addEventListener("install", (event) => {

@@ -12,8 +12,8 @@ import platform.io.Assets;
 
 /** Browser entry point, compiled to JavaScript by TeaVM. */
 public class WebMain {
-	private static final String[] IMAGES = {"res/marble.png"};
-	private static final String[] TEXTS = {};
+	private static final String[] IMAGES = {};
+	private static final String[] TEXTS = {"res/" + Engine.BOLT_MODEL + ".obj"};
 	private static final int DEFAULT_SCALE = 3;
 	private static final double TICK_MS = Engine.TICK_SECONDS * 1000.0;
 
