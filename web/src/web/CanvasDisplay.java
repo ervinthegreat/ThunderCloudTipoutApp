@@ -35,6 +35,11 @@ public class CanvasDisplay implements Display {
 		this.uiCanvas = uiCanvas;
 		this.cssWidth = cssWidth;
 		this.cssHeight = cssHeight;
+		// iOS Safari's 100vh includes the area behind its toolbar; match the layout size exactly.
+		for (HTMLCanvasElement c : new HTMLCanvasElement[] {canvas, uiCanvas}) {
+			c.getStyle().setProperty("width", cssWidth + "px");
+			c.getStyle().setProperty("height", cssHeight + "px");
+		}
 		uiCtx = (CanvasRenderingContext2D) uiCanvas.getContext("2d");
 		uiDraw = new CanvasUiCanvas(uiCtx);
 	}

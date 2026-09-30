@@ -36,11 +36,15 @@ public class TipApp implements UiLayer {
 	private static final float FIELD_H = 48;
 	private static final float BUTTON_H = 52;
 	private static final int MAX_NAMES = 12;
+	/** Room kept at the bottom for Start over and the iPhone home indicator. */
+	private static final float START_OVER_SPACE = 110;
 
 	private final TextInputHost input;
 	private final ClockSource clock;
 
 	private Step step;
+	/** The app opens on the bare scene; the first tap brings up the screens. */
+	private boolean awake;
 	private final List<TextField> names = new ArrayList<>();
 	private final TextField cash = new TextField(TextField.Kind.MONEY);
 	private final TextField credit = new TextField(TextField.Kind.MONEY);
@@ -52,6 +56,7 @@ public class TipApp implements UiLayer {
 	private boolean firstTipout;
 	/** Start over takes two taps so a stray tap mid-rush can't erase the tipout. */
 	private boolean confirmStartOver;
+	private float nameRowGap = 10;
 	private final Runnable startOver = this::startOverTapped;
 	private String error;
 	private TipoutCalculator.Result result;
@@ -136,15 +141,12 @@ public class TipApp implements UiLayer {
 		} else if (!f.text.trim().isEmpty() && names.size() < MAX_NAMES) {
 			TextField next = addNameRow();
 			next.x = f.x; next.w = f.w; next.h = f.h;
-			next.y = f.y + f.h + rowGap();
+			next.y = f.y + f.h + nameRowGap;
 			input.focus(next);
 		} else {
 			input.blurAll();
 		}
 	}
-
-	private float rowHeight() {return names.size() > 8 ? 40 : FIELD_H;}
-	private float rowGap() {return names.size() > 8 ? 6 : 10;}
 
 	private void namesNext() {
 		for (int i = 0; i < names.size(); i++) {
@@ -227,6 +229,10 @@ public class TipApp implements UiLayer {
 
 	@Override
 	public void tap(float x, float y) {
+		if (!awake) {
+			awake = true;
+			return;
+		}
 		for (TextField f : visibleFields) {
 			if (f.contains(x, y)) {
 				confirmStartOver = false;
@@ -251,10 +257,15 @@ public class TipApp implements UiLayer {
 	public void paint(UiCanvas c, float width, float height) {
 		visibleFields.clear();
 		buttons.clear();
+		if (!awake) {
+			paintTapToStart(c, width, height);
+			input.sync(visibleFields);
+			return;
+		}
 		c.fillRect(0, 0, width, height, DIM);
 		float x = MARGIN, w = width - 2 * MARGIN;
 		switch (step) {
-			case NAMES: paintNames(c, x, w); break;
+			case NAMES: paintNames(c, x, w, height); break;
 			case FIRST_OR_LATER: paintFirstOrLater(c, x, w); break;
 			case REPORT: paintReport(c, x, w); break;
 			case PREVIOUS: paintPrevious(c, x, w); break;
@@ -264,9 +275,18 @@ public class TipApp implements UiLayer {
 		input.sync(visibleFields);
 	}
 
+	private void paintTapToStart(UiCanvas c, float width, float height) {
+		double pulse = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 600.0);
+		int alpha = (int) (90 + 120 * pulse);
+		c.drawText("Tap to start", width * 0.5f, height - 80, 18, true, (alpha << 24) | 0xFFFFFF,
+				UiCanvas.ALIGN_CENTER);
+	}
+
 	/** Pinned above the iPhone home indicator; erases every name and number after a confirming tap. */
 	private void paintStartOver(UiCanvas c, float x, float w, float height) {
-		float h = 44, y = height - 34 - h;
+		float contentBottom = 0;
+		for (Button b : buttons) contentBottom = Math.max(contentBottom, b.y + b.h);
+		float h = 44, y = Math.max(height - START_OVER_SPACE + 12, contentBottom + 12);
 		buttons.add(new Button(x, y, w, h, startOver));
 		if (confirmStartOver) {
 			c.fillRoundRect(x, y, w, h, 12, 0x55FF3030);
@@ -279,11 +299,17 @@ public class TipApp implements UiLayer {
 		}
 	}
 
-	private void paintNames(UiCanvas c, float x, float w) {
+	private void paintNames(UiCanvas c, float x, float w, float height) {
 		float y = title(c, "Who's working?", x, TOP);
-		y = paragraph(c, "Type every name on this tipout, one per line. The headcount comes from this list.", x, y, w);
+		if (names.size() <= 8) {
+			y = paragraph(c, "Type every name on this tipout, one per line. The headcount comes from this list.", x, y, w);
+		}
 		y += 10;
-		float rowH = rowHeight(), gap = rowGap();
+		float below = (names.size() < MAX_NAMES ? 58 : 0) + 36 + (error != null ? 50 : 0) + 6 + BUTTON_H;
+		float pitch = Math.min(FIELD_H + 10, (height - START_OVER_SPACE - y - below) / names.size());
+		float gap = Math.max(4, Math.min(10, pitch * 0.16f));
+		float rowH = Math.max(24, pitch - gap);
+		nameRowGap = gap;
 		boolean removable = names.size() > 1;
 		for (int i = 0; i < names.size(); i++) {
 			TextField f = names.get(i);
@@ -435,20 +461,22 @@ public class TipApp implements UiLayer {
 		visibleFields.add(f);
 		c.fillRoundRect(x, y, w, h, 10, FIELD_BG);
 		c.strokeRoundRect(x, y, w, h, 10, f.focused ? 2.5f : 1.5f, f.focused ? ACCENT : FIELD_BORDER);
+		float size = h < 36 ? 17 : 20;
 		float textX = x + 14;
-		float baseline = y + h * 0.5f + 7;
+		float baseline = y + h * 0.5f + size * 0.35f;
 		if (f.kind == TextField.Kind.MONEY) {
-			c.drawText("$", textX, baseline, 20, true, MUTED, UiCanvas.ALIGN_LEFT);
-			textX += c.measureText("$", 20, true) + 6;
+			c.drawText("$", textX, baseline, size, true, MUTED, UiCanvas.ALIGN_LEFT);
+			textX += c.measureText("$", size, true) + 6;
 		}
 		if (f.text.isEmpty() && !f.focused) {
-			c.drawText(placeholder, textX, baseline, 20, false, 0xFF6C6C80, UiCanvas.ALIGN_LEFT);
+			c.drawText(placeholder, textX, baseline, size, false, 0xFF6C6C80, UiCanvas.ALIGN_LEFT);
 		} else {
-			c.drawText(f.text, textX, baseline, 20, false, TEXT, UiCanvas.ALIGN_LEFT);
+			c.drawText(f.text, textX, baseline, size, false, TEXT, UiCanvas.ALIGN_LEFT);
 		}
 		if (f.focused && (System.currentTimeMillis() / 500) % 2 == 0) {
-			float caretX = textX + c.measureText(f.text, 20, false) + 1;
-			c.fillRect(caretX, y + 12, 2, h - 24, ACCENT);
+			float caretX = textX + c.measureText(f.text, size, false) + 1;
+			float inset = h * 0.25f;
+			c.fillRect(caretX, y + inset, 2, h - 2 * inset, ACCENT);
 		}
 	}
 
