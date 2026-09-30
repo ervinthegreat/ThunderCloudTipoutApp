@@ -13,7 +13,7 @@ import platform.io.Assets;
 /** Browser entry point, compiled to JavaScript by TeaVM. */
 public class WebMain {
 	private static final String[] IMAGES = {};
-	private static final String[] TEXTS = {"res/" + Engine.BOLT_MODEL + ".obj"};
+	private static final String[] TEXTS = modelPaths();
 	private static final int DEFAULT_SCALE = 3;
 	private static final double TICK_MS = Engine.TICK_SECONDS * 1000.0;
 
@@ -23,6 +23,13 @@ public class WebMain {
 	private static double statsTime;
 	private static int statsFrames;
 	private static double renderMsTotal;
+
+	private static String[] modelPaths() {
+		String[] paths = new String[1 + Engine.GEM_MODELS.length];
+		paths[0] = "res/" + Engine.BOLT_MODEL + ".obj";
+		for (int i = 0; i < Engine.GEM_MODELS.length; i++) paths[i + 1] = "res/" + Engine.GEM_MODELS[i] + ".obj";
+		return paths;
+	}
 
 	public static void main(String[] args) {
 		WebAssets assets = new WebAssets();

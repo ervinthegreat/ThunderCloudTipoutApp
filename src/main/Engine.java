@@ -14,14 +14,24 @@ import platform.graphics.objects.Mesh;
 public class Engine {
 
 	public static final String BOLT_MODEL = "thunder";
+	public static final String[] GEM_MODELS = {"gems/amethyst", "gems/diamond", "gems/sapphire", "gems/topaz"};
+	private static final int BOLT_COLOR = 0xFFFFD21F;
+	private static final int[] GEM_COLORS = {0xFF9B5DE5, 0xFFE0F7FF, 0xFF2E6BFF, 0xFFFFA630};
+
+	private static final float SCENE_DEPTH = -4.0f;
 	private static final float BOLT_SIZE = 2.0f;
-	private static final float BOLT_DISTANCE = 4.0f;
+	private static final float GEM_SIZE = 0.6f;
+	/** Gem centers, one per corner around the bolt, in GEM_MODELS order. */
+	private static final float[][] GEM_OFFSETS = {{-0.85f, 1.5f}, {0.85f, 1.5f}, {-0.85f, -1.5f}, {0.85f, -1.5f}};
+
 	private static final float SPIN_DEGREES_PER_TICK = 0.5f;
 	private static final float TUMBLE_DEGREES_PER_TICK = SPIN_DEGREES_PER_TICK * 0.5f;
-	private static final int BOLT_COLOR = 0xFFFFD21F;
+	private static final float GEM_SPIN_DEGREES_PER_TICK = 1.0f;
 
 	private static Renderer renderer;
+	private static TextureManager textureManager;
 	private static Entity bolt;
+	private static Entity[] gems;
 	private static Camera camera;
 	private static Light light;
 
@@ -31,21 +41,31 @@ public class Engine {
 	public static void init() {
 		camera = new Camera(new Vec3(0, 0, 0));
 		renderer = new Renderer();
-		TextureManager textureManager = new TextureManager();
-		int boltTexture = textureManager.createTexture(1, 1, new int[] {BOLT_COLOR});
+		textureManager = new TextureManager();
 		renderer.setTextureManager(textureManager);
 		light = new Light(new Vec3(10, 10, 10), new Vec3(1, 1, 1), 20f, 8f);
 		renderer.setLight(light);
 		renderer.setMainCamera(camera);
 		renderer.setClearColor(Utilities.floatToInt(0, 0, 0));
 
-		Mesh model = OBJLoader.loadObjModel(BOLT_MODEL);
-		if (model == null) return;
+		bolt = createModel(BOLT_MODEL, BOLT_COLOR, BOLT_SIZE, new Vec3(0, 0, SCENE_DEPTH));
+		gems = new Entity[GEM_MODELS.length];
+		for (int i = 0; i < GEM_MODELS.length; i++) {
+			Vec3 pos = new Vec3(GEM_OFFSETS[i][0], GEM_OFFSETS[i][1], SCENE_DEPTH);
+			gems[i] = createModel(GEM_MODELS[i], GEM_COLORS[i], GEM_SIZE, pos);
+		}
+	}
+
+	/** Loads res/<name>.obj, centers it, scales its largest dimension to size, and colors it solid. Null if missing. */
+	private static Entity createModel(String name, int color, float size, Vec3 position) {
+		Mesh model = OBJLoader.loadObjModel(name);
+		if (model == null) return null;
 		float extent = centerMesh(model);
-		bolt = new Entity(Rasterizer.createVAO(model), new Vec3(0, 0, -BOLT_DISTANCE), 0, 0, 0);
-		bolt.setScale(extent > 0 ? BOLT_SIZE / extent : 1f);
-		bolt.setTextureId(boltTexture);
-		bolt.setLit(true);
+		Entity e = new Entity(Rasterizer.createVAO(model), position, 0, 0, 0);
+		e.setScale(extent > 0 ? size / extent : 1f);
+		e.setTextureId(textureManager.createTexture(1, 1, new int[] {color}));
+		e.setLit(true);
+		return e;
 	}
 
 	/** Moves the mesh's bounding-box center to the origin so it spins in place; returns its largest dimension. */
@@ -71,12 +91,18 @@ public class Engine {
 				(bolt.getPitch() + TUMBLE_DEGREES_PER_TICK) % 360f,
 				(bolt.getYaw() + SPIN_DEGREES_PER_TICK) % 360f,
 				0);
+		for (Entity gem : gems) {
+			if (gem != null) gem.setRotation(0, (gem.getYaw() + GEM_SPIN_DEGREES_PER_TICK) % 360f, 0);
+		}
 	}
 
 	public static void render() {
 		DisplayManager.startFrame();
 		renderer.prepare();
 		if (bolt != null) renderer.render(bolt);
+		for (Entity gem : gems) {
+			if (gem != null) renderer.render(gem);
+		}
 		DisplayManager.endFrame();
 	}
 }

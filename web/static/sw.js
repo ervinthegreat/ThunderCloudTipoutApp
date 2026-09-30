@@ -6,11 +6,21 @@ const ASSETS = [
   "index.html",
   "classes.js",
   "manifest.webmanifest",
-  "res/thunder.obj"
+  "res/thunder.obj",
+  "res/gems/amethyst.obj",
+  "res/gems/diamond.obj",
+  "res/gems/sapphire.obj",
+  "res/gems/topaz.obj"
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: "reload" skips the browser's HTTP cache (GitHub Pages sets max-age=600),
+  // otherwise a new build could be cached with the previous build's files.
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.addAll(ASSETS.map((url) => new Request(url, { cache: "reload" }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (event) => {

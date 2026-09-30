@@ -72,6 +72,7 @@ Write-Host "Assembling site..."
 Copy-Item -Recurse web\static\* $outDir
 New-Item -ItemType Directory -Force "$outDir\res" | Out-Null
 Copy-Item res\thunder.obj "$outDir\res\"
+Copy-Item -Recurse res\gems "$outDir\res\"
 New-Item -ItemType File -Force "$outDir\.nojekyll" | Out-Null
 $buildId = Get-Date -Format "yyyyMMddHHmmss"
 (Get-Content "$outDir\sw.js" -Raw).Replace("BUILD_ID", $buildId) | Set-Content "$outDir\sw.js" -NoNewline

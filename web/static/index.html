@@ -50,7 +50,13 @@
   window.addEventListener("error", function (e) { showError(e.message + " @ " + e.filename + ":" + e.lineno); });
   window.addEventListener("unhandledrejection", function (e) { showError("promise: " + e.reason); });
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch(function () {});
+    // When a newer build's service worker takes over, reload once so it's shown immediately.
+    var hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (hadController) location.reload();
+      hadController = true;
+    });
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(function () {});
   }
 </script>
 <script src="classes.js"></script>
