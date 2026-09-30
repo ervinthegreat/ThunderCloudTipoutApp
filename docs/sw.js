@@ -1,6 +1,6 @@
 // Cache-first service worker so the app keeps working offline after the first visit.
-// 20260930110532 is replaced by build-web.ps1 on every build, which makes phones pick up new versions.
-const CACHE = "thundercloud-20260930110532";
+// 20260930161044 is replaced by build-web.ps1 on every build, which makes phones pick up new versions.
+const CACHE = "thundercloud-20260930161044";
 const ASSETS = [
   "./",
   "index.html",
