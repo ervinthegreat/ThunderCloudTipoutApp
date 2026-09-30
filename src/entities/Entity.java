@@ -21,6 +21,7 @@ public class Entity {
 	}
 
 	public void setPosition(Vec3 position) {this.position = position;}
+	public void setVaoId(int vaoId) {this.vaoId = vaoId;}
 	public void setRotation(float x, float y, float z) {this.rotx =x; this.roty = y; this.rotz = z;}
 	public void setScale(float scale) {this.scale = scale;}
 	public void setTextureId(int textureId) {this.textureId = textureId;}

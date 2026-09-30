@@ -5,6 +5,7 @@ import org.teavm.jso.dom.html.HTMLCanvasElement;
 import org.teavm.jso.dom.html.HTMLDocument;
 import org.teavm.jso.dom.html.HTMLElement;
 
+import app.TipApp;
 import main.Engine;
 import platform.display.DisplayManager;
 import platform.graphics.objects.FrameBuffer;
@@ -14,7 +15,7 @@ import platform.io.Assets;
 public class WebMain {
 	private static final String[] IMAGES = {};
 	private static final String[] TEXTS = modelPaths();
-	private static final int DEFAULT_SCALE = 3;
+	private static final int DEFAULT_SCALE = DisplayManager.DEFAULT_SCALE;
 	private static final double TICK_MS = Engine.TICK_SECONDS * 1000.0;
 
 	private static HTMLElement stats;
@@ -41,13 +42,23 @@ public class WebMain {
 		Window window = Window.current();
 		HTMLDocument doc = HTMLDocument.current();
 
-		DisplayManager.createDisplay(window.getInnerWidth(), window.getInnerHeight(), readScale(window));
+		int width = window.getInnerWidth();
+		int height = window.getInnerHeight();
+		DisplayManager.createDisplay(width, height, readScale(window));
 		FrameBuffer fb = DisplayManager.getFramebuffer();
 		HTMLCanvasElement canvas = (HTMLCanvasElement) doc.getElementById("screen");
-		DisplayManager.setDisplay(new CanvasDisplay(canvas, fb));
-		WebInput.install(canvas);
+		HTMLCanvasElement uiCanvas = (HTMLCanvasElement) doc.getElementById("ui");
+		DisplayManager.setDisplay(new CanvasDisplay(canvas, uiCanvas, fb, width, height));
 
-		stats = doc.getElementById("stats");
+		TipApp app = new TipApp(new WebTextInput(doc.getElementById("fields")), new WebClock());
+		DisplayManager.setUiLayer(app);
+		WebInput.install(uiCanvas, app);
+
+		String search = window.getLocation().getSearch();
+		if (search != null && search.contains("stats")) {
+			stats = doc.getElementById("stats");
+			stats.getStyle().setProperty("display", "block");
+		}
 		HTMLElement loading = doc.getElementById("loading");
 		if (loading != null) loading.getParentNode().removeChild(loading);
 
